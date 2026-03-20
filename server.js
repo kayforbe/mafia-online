@@ -12,6 +12,11 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// explicitly serve index.html for any remaining requests (fixes Render "Cannot GET /" issue)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // ============ GAME STATE ============
 const rooms = new Map();
 
