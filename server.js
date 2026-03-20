@@ -158,6 +158,11 @@ function checkWinCondition(room) {
   }
 
   return null;
+  return null;
+}
+
+function emitLog(roomCode, message, type = 'system') {
+  io.to(roomCode).emit('gameLog', { message, type });
 }
 
 function processNightActions(room) {
@@ -650,6 +655,19 @@ function processNightResults(room) {
     saved: results.savedPlayer && results.killedPlayer === null ? true : false
   };
 
+  if (results.killedPlayer) {
+    emitLog(room.code, `💀 قُتل ${results.killedPlayer.name} في الليل`, 'death');
+  }
+  if (results.bodyguardDied) {
+    emitLog(room.code, `🛡️ ضحى الحارس بنفسه لإنقاذ ضحية المافيا`, 'warning');
+  }
+  if (results.sniperKill) {
+    emitLog(room.code, `🎯 قنص القناص اللاعب ${results.sniperKill.name}`, 'death');
+  }
+  if (!results.killedPlayer && !results.bodyguardDied && !results.sniperKill) {
+    emitLog(room.code, `🌅 مرت الليلة بسلام، لا ضحايا!`, 'success');
+  }
+
   io.to(room.code).emit('phaseChange', publicResults);
 
   // Send private detective result
@@ -682,6 +700,8 @@ function startDiscussionPhase(room) {
   room.phase = 'discussion';
   room.discussionVotes = {};
 
+  emitLog(room.code, `🎙️ بدأ وقت النقاش للبحث عن المافيا المندسة`);
+
   const alivePlayers = getAlivePlayers(room).map(p => ({ id: p.id, name: p.name }));
 
   io.to(room.code).emit('phaseChange', {
@@ -710,6 +730,8 @@ function startVotingPhase(room) {
     timer: TIMERS.VOTING,
     alivePlayers
   });
+
+  emitLog(room.code, `🗳️ انتهى النقاش، بدأ وقت التصويت لمن تثقون بذنبه!`, 'warning');
 
   startPhaseTimer(room, TIMERS.VOTING, () => processVotes(room));
 
@@ -751,10 +773,18 @@ function processVotes(room) {
       room.deadPlayers.add(eliminated);
       eliminatedPlayer = { id: player.id, name: player.name, role: getRoleInfo(player.role) };
 
+      emitLog(room.code, `⚖️ تم إعدام ${player.name} (${getRoleInfo(player.role).name}) بالأغلبية`, 'death');
+
       // Check jester win
       if (player.role === 'jester') {
         room.jesterWin = true;
       }
+    }
+  } else {
+    if (skipVotes > 0) {
+      emitLog(room.code, `⏭️ قررت المدينة تخطي الإعدام واستمرار اللعب`, 'system');
+    } else {
+      emitLog(room.code, `⚖️ تعادلت الأصوات.. لا إعدام اليوم`, 'system');
     }
   }
 
@@ -961,10 +991,12 @@ function botDiscussionVote(room) {
     if (endCount > extendCount) {
       clearTimer(room);
       room.discussionVotes = {};
+      emitLog(room.code, `الأغلبية قررت إنهاء النقاش ✅`, 'vote');
       startVotingPhase(room);
     } else {
       clearTimer(room);
       room.discussionVotes = {};
+      emitLog(room.code, `الأغلبية قررت تمديد الوقت ⏳`, 'vote');
       io.to(room.code).emit('discussionExtended', { timer: TIMERS.DISCUSSION });
       startPhaseTimer(room, TIMERS.DISCUSSION, () => startVotingPhase(room));
     }

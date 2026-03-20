@@ -11,6 +11,66 @@ let hasVoted = false;
 let hasActed = false;
 let hasDiscussionVoted = false;
 
+// ============ AUDIO CONTROLLER ============
+const SFX = {
+  muted: false,
+  sounds: {
+    click: 'https://actions.google.com/sounds/v1/ui/button_click.ogg',
+    night: 'https://actions.google.com/sounds/v1/horror/creepy_wind.ogg',
+    day: 'https://actions.google.com/sounds/v1/animals/rooster_crowing.ogg',
+    death: 'https://actions.google.com/sounds/v1/weapons/gun_shot_single.ogg',
+    vote: 'https://actions.google.com/sounds/v1/alarms/alarm_clock_ticking.ogg',
+    win: 'https://actions.google.com/sounds/v1/cartoon/cartoon_success_fanfare.ogg',
+    bell: 'https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg'
+  },
+  play(name, loop = false) {
+    if (this.muted) return;
+    if (!this.sounds[name]) return;
+    
+    // Stop currently looping SOUND if any, but let other sounds overlay
+    if (this.currentLoop && loop) {
+      this.currentLoop.pause();
+    }
+
+    const audio = new Audio(this.sounds[name]);
+    audio.loop = loop;
+    audio.volume = name === 'night' || name === 'vote' ? 0.3 : 0.6; // Lower volume for background/ambient
+    audio.play().catch(e => console.log('Audio blocked by browser auto-play policy', e));
+    
+    if (loop) this.currentLoop = audio;
+  },
+  stopLoop() {
+    if (this.currentLoop) {
+      this.currentLoop.pause();
+      this.currentLoop.currentTime = 0;
+      this.currentLoop = null;
+    }
+  }
+};
+
+function toggleSFX() {
+  SFX.muted = !SFX.muted;
+  const btn = document.getElementById('btn-sfx-toggle');
+  const icon = document.getElementById('sfx-icon');
+  
+  if (SFX.muted) {
+    btn.classList.add('muted');
+    icon.textContent = '🔇';
+    SFX.stopLoop();
+  } else {
+    btn.classList.remove('muted');
+    icon.textContent = '🔊';
+    SFX.play('click');
+  }
+}
+
+// Add click listener to all buttons
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.btn') || e.target.closest('.action-btn') || e.target.closest('.action-card')) {
+    SFX.play('click');
+  }
+});
+
 // ============ BOT CONTROLS ============
 function addBots() {
   socket.emit('addBots', { count: 5 }, (res) => {
@@ -248,34 +308,45 @@ socket.on('phaseChange', (data) => {
 
   switch (data.phase) {
     case 'roleReveal':
+      SFX.play('click');
       showScreen('role');
       break;
 
     case 'night':
+      SFX.play('night', true);
       handleNightPhase(data);
       break;
 
     case 'dayResults':
+      SFX.stopLoop();
+      SFX.play('day');
       handleDayResults(data);
       break;
 
     case 'discussion':
+      SFX.play('bell');
       handleDiscussionPhase(data);
       break;
 
     case 'voting':
+      SFX.stopLoop();
+      SFX.play('vote', true);
       handleVotingPhase(data);
       break;
 
     case 'voteResult':
+      SFX.stopLoop();
       handleVoteResult(data);
       break;
 
     case 'gameOver':
+      SFX.stopLoop();
+      SFX.play('win');
       handleGameOver(data);
       break;
 
     case 'lobby':
+      SFX.stopLoop();
       showScreen('lobby');
       voiceChat.stopVoice();
       break;
@@ -555,6 +626,7 @@ function handleVoteResult(data) {
   const content = document.getElementById('vote-result-content');
 
   if (data.eliminated) {
+    SFX.play('death');
     content.innerHTML = `
       <div class="eliminated-card">
         <div class="eliminated-emoji">${data.eliminated.role.emoji}</div>
@@ -640,6 +712,50 @@ socket.on('error', (msg) => {
 
 socket.on('playerDisconnected', (data) => {
   showToast(`${data.playerName} غادر اللعبة`, true);
+  addLogMessage(`${data.playerName} غادر اللعبة`, 'warning');
+});
+
+// ============ GAME LOG ============
+let unreadLogs = 0;
+
+function toggleGameLog() {
+  const drawer = document.getElementById('game-log-drawer');
+  const badge = document.getElementById('log-badge');
+  drawer.classList.toggle('open');
+  if (drawer.classList.contains('open')) {
+    unreadLogs = 0;
+    badge.textContent = '0';
+    badge.classList.add('hidden');
+    // Scroll to bottom
+    const messages = document.getElementById('log-messages');
+    messages.scrollTop = messages.scrollHeight;
+  }
+}
+
+function addLogMessage(text, type = 'system') {
+  const messages = document.getElementById('log-messages');
+  const div = document.createElement('div');
+  div.className = `log-item ${type}`;
+
+  const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  div.innerHTML = `${text} <span class="log-time">${time}</span>`;
+
+  messages.appendChild(div);
+
+  // Auto scroll if open
+  const drawer = document.getElementById('game-log-drawer');
+  if (drawer.classList.contains('open')) {
+    messages.scrollTop = messages.scrollHeight;
+  } else {
+    unreadLogs++;
+    const badge = document.getElementById('log-badge');
+    badge.textContent = unreadLogs > 9 ? '9+' : unreadLogs;
+    badge.classList.remove('hidden');
+  }
+}
+
+socket.on('gameLog', (data) => {
+  addLogMessage(data.message, data.type);
 });
 
 // ============ ENTER KEY HANDLERS ============

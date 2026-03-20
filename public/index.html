@@ -225,6 +225,26 @@
     </div>
   </div>
 
+  <!-- ============ GAME LOG & SFX ============ -->
+  <div id="game-controls" class="game-controls hidden">
+    <div id="btn-sfx-toggle" class="control-btn" onclick="toggleSFX()">
+      <span id="sfx-icon">🔊</span>
+    </div>
+    <div id="game-log-toggle" class="control-btn" onclick="toggleGameLog()">
+      <span class="log-icon">📜</span>
+      <span class="log-badge hidden" id="log-badge">0</span>
+    </div>
+  </div>
+  <div id="game-log-drawer" class="game-log-drawer">
+    <div class="log-header">
+      <h3>📜 سجل الأحداث</h3>
+      <button class="btn-close-log" onclick="toggleGameLog()">✖</button>
+    </div>
+    <div class="log-messages" id="log-messages">
+      <!-- Messages will be injected here -->
+    </div>
+  </div>
+
   <!-- ============ TOAST ============ -->
   <div id="toast" class="toast hidden"></div>
 
