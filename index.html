@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>مافيا أونلاين 🎭 | Mafia Online</title>
+  <meta name="description" content="لعبة مافيا أونلاين جماعية مع مايكروفون - العب مع أصدقائك!">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- ============ LANDING SCREEN ============ -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-bg">
+      <div class="particles" id="particles"></div>
+    </div>
+    <div class="landing-content">
+      <div class="logo-container">
+        <div class="logo-glow"></div>
+        <h1 class="logo-title">🎭</h1>
+        <h2 class="logo-subtitle">مافيا أونلاين</h2>
+        <p class="logo-tagline">اكتشف الخائن بينكم</p>
+      </div>
+      <div class="landing-form">
+        <div class="input-group">
+          <input type="text" id="player-name" placeholder="اسمك..." maxlength="20" autocomplete="off">
+          <div class="input-line"></div>
+        </div>
+        <button id="btn-create" class="btn btn-primary" onclick="createRoom()">
+          <span class="btn-icon">🏠</span>
+          <span>إنشاء غرفة</span>
+        </button>
+        <div class="divider">
+          <span>أو</span>
+        </div>
+        <div class="join-group">
+          <input type="text" id="room-code" placeholder="كود الغرفة" maxlength="4" autocomplete="off">
+          <button id="btn-join" class="btn btn-secondary" onclick="joinRoom()">
+            <span class="btn-icon">🚪</span>
+            <span>انضمام</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LOBBY SCREEN ============ -->
+  <div id="screen-lobby" class="screen">
+    <div class="lobby-container">
+      <div class="room-header">
+        <div class="room-code-display">
+          <span class="room-label">كود الغرفة</span>
+          <span class="room-code" id="display-room-code">----</span>
+          <button class="btn-copy" onclick="copyRoomCode()" title="نسخ الكود">📋</button>
+        </div>
+      </div>
+      <div class="player-count">
+        <span id="player-count-text">0 / 10 لاعبين</span>
+        <div class="player-count-bar">
+          <div class="player-count-fill" id="player-count-fill"></div>
+          <div class="player-count-min" style="left: 60%"></div>
+        </div>
+        <span class="min-label">الحد الأدنى: 6</span>
+      </div>
+      <div class="players-grid" id="players-grid"></div>
+      <button id="btn-start" class="btn btn-primary btn-start hidden" onclick="startGame()">
+        <span class="btn-icon">🎮</span>
+        <span>بدء اللعبة</span>
+      </button>
+      <div id="bot-controls" class="bot-controls hidden">
+        <button class="btn btn-bot" onclick="addBots()">
+          <span class="btn-icon">🤖</span>
+          <span>إضافة بوتات</span>
+        </button>
+        <button class="btn btn-bot-remove" onclick="removeBots()">
+          <span class="btn-icon">🗑️</span>
+          <span>إزالة البوتات</span>
+        </button>
+      </div>
+      <p id="lobby-message" class="lobby-msg">في انتظار اللاعبين...</p>
+    </div>
+  </div>
+
+  <!-- ============ ROLE REVEAL SCREEN ============ -->
+  <div id="screen-role" class="screen">
+    <div class="role-reveal-container">
+      <h2 class="role-reveal-title">شخصيتك</h2>
+      <div class="role-card" id="role-card">
+        <div class="role-card-inner">
+          <div class="role-emoji" id="role-emoji">🎭</div>
+          <div class="role-name" id="role-name">---</div>
+          <div class="role-team" id="role-team">---</div>
+          <div class="role-desc" id="role-desc">---</div>
+          <div id="role-teammates" class="role-teammates hidden"></div>
+        </div>
+        <div class="role-card-glow"></div>
+      </div>
+      <p class="role-hint">احفظ شخصيتك سراً! 🤫</p>
+    </div>
+  </div>
+
+  <!-- ============ NIGHT SCREEN ============ -->
+  <div id="screen-night" class="screen">
+    <div class="night-container">
+      <div class="night-sky">
+        <div class="moon">🌙</div>
+        <div class="stars" id="stars"></div>
+      </div>
+      <h2 class="phase-title">الليل - الجولة <span id="night-round">1</span></h2>
+      <div class="timer-container">
+        <div class="timer-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="timer-bg" cx="50" cy="50" r="45"/>
+            <circle class="timer-progress" id="night-timer-progress" cx="50" cy="50" r="45"/>
+          </svg>
+          <span class="timer-text" id="night-timer">30</span>
+        </div>
+      </div>
+      <div id="night-action-area">
+        <p id="night-role-info" class="night-role-text">انتظر حتى ينتهي الليل...</p>
+        <div id="night-targets" class="targets-grid"></div>
+        <div id="night-action-status" class="action-status hidden">
+          <span class="status-icon">✅</span>
+          <span class="status-text">تم اختيار هدفك</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DAY RESULTS SCREEN ============ -->
+  <div id="screen-day-results" class="screen">
+    <div class="day-results-container">
+      <div class="sunrise">☀️</div>
+      <h2 class="phase-title">أشرقت الشمس...</h2>
+      <div id="day-result-content" class="result-content">
+        <p class="result-text">لا ضحايا الليلة! 🎉</p>
+      </div>
+      <div id="investigation-result" class="investigation-result hidden"></div>
+    </div>
+  </div>
+
+  <!-- ============ DISCUSSION SCREEN ============ -->
+  <div id="screen-discussion" class="screen">
+    <div class="discussion-container">
+      <h2 class="phase-title">🎙️ وقت النقاش</h2>
+      <div class="timer-container">
+        <div class="timer-ring large">
+          <svg viewBox="0 0 100 100">
+            <circle class="timer-bg" cx="50" cy="50" r="45"/>
+            <circle class="timer-progress" id="discussion-timer-progress" cx="50" cy="50" r="45"/>
+          </svg>
+          <span class="timer-text" id="discussion-timer">90</span>
+        </div>
+      </div>
+      <div class="voice-controls" id="voice-controls">
+        <button id="btn-mic" class="btn-mic" onclick="toggleMic()">
+          <span class="mic-icon" id="mic-icon">🎙️</span>
+          <span class="mic-status" id="mic-status">اضغط للتحدث</span>
+        </button>
+        <div class="voice-peers" id="voice-peers"></div>
+      </div>
+      <div class="alive-players-list" id="discussion-players"></div>
+      <div class="discussion-vote-controls" id="discussion-vote-controls">
+        <div class="disc-vote-buttons">
+          <button class="btn btn-extend" id="btn-extend" onclick="discussionVote('extend')">
+            <span class="btn-icon">⏳</span>
+            <span>تمديد الوقت</span>
+          </button>
+          <button class="btn btn-end-disc" id="btn-end-disc" onclick="discussionVote('end')">
+            <span class="btn-icon">✅</span>
+            <span>انتهيت</span>
+          </button>
+        </div>
+        <div class="disc-vote-counter" id="disc-vote-counter"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VOTING SCREEN ============ -->
+  <div id="screen-voting" class="screen">
+    <div class="voting-container">
+      <h2 class="phase-title">🗳️ التصويت</h2>
+      <p class="voting-subtitle">من تريد طرده من المدينة؟</p>
+      <div class="timer-container">
+        <div class="timer-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="timer-bg" cx="50" cy="50" r="45"/>
+            <circle class="timer-progress" id="voting-timer-progress" cx="50" cy="50" r="45"/>
+          </svg>
+          <span class="timer-text" id="voting-timer">30</span>
+        </div>
+      </div>
+      <div id="voting-targets" class="voting-grid"></div>
+      <button id="btn-skip" class="btn btn-ghost" onclick="voteSkip()">
+        <span>⏭️ تخطي التصويت</span>
+      </button>
+      <div class="vote-counter">
+        <span id="vote-count">0</span> / <span id="vote-total">0</span> صوّتوا
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VOTE RESULT SCREEN ============ -->
+  <div id="screen-vote-result" class="screen">
+    <div class="vote-result-container">
+      <h2 class="phase-title">نتيجة التصويت</h2>
+      <div id="vote-result-content" class="result-content"></div>
+    </div>
+  </div>
+
+  <!-- ============ GAME OVER SCREEN ============ -->
+  <div id="screen-gameover" class="screen">
+    <div class="gameover-container">
+      <div class="gameover-effect" id="gameover-effect"></div>
+      <div class="winner-badge" id="winner-badge">
+        <span class="winner-emoji" id="winner-emoji">🏆</span>
+      </div>
+      <h2 class="gameover-title" id="gameover-title">انتهت اللعبة!</h2>
+      <p class="gameover-message" id="gameover-message"></p>
+      <div class="gameover-players" id="gameover-players"></div>
+      <button class="btn btn-primary" onclick="backToLobby()">
+        <span class="btn-icon">🔄</span>
+        <span>العب مرة أخرى</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/voice.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
